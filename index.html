@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tempo &ndash; Time Perception Game</title>
+  <meta name="description" content="A time perception game with 6 modes testing your internal sense of time." />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#050608; --panel:#0d1216; --panel-alt:#141a21;
+      --fg:#d5d9df; --fg-mid:#92a0ad; --fg-dim:#4a5568;
+      --accent:#4da3ff; --accent-alt:#7f5bff;
+      --success:#35d96f; --danger:#ff3b30; --warn:#ffe666;
+      --border:#1b232b; --border-mid:#26333d;
+      font-family:"Inter",system-ui,-apple-system,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:var(--bg);color:var(--fg);overflow:hidden}
+    body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+    body::before{
+      content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.4;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      background-size:200px 200px;
+    }
+
+    /* HOME */
+    #homeScreen{
+      position:fixed;inset:0;z-index:900;overflow-y:auto;
+      display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(ellipse at 30% 40%,rgba(77,163,255,.06),transparent 60%),
+                 radial-gradient(ellipse at 70% 70%,rgba(127,91,255,.06),transparent 60%),var(--bg);
+    }
+    #homeScreen.exit{animation:homeOut .5s cubic-bezier(.55,.1,.3,1) forwards}
+    @keyframes homeOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.97);pointer-events:none}}
+    .homeContainer{
+      position:relative;z-index:2;width:min(520px,94vw);padding:2rem 0;
+      display:flex;flex-direction:column;align-items:flex-start;
+      animation:slideUp .8s cubic-bezier(.25,1,.5,1);
+    }
+    @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    .homeTitle{
+      font-size:3.4rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;margin-bottom:.25rem;
+      background:linear-gradient(135deg,#fff 30%,#92a0ad 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .homeSubtitle{font-size:.7rem;letter-spacing:.25em;color:var(--fg-mid);text-transform:uppercase;margin-bottom:.9rem;opacity:.7}
+
+    .diffRow{display:flex;gap:.5rem;margin-bottom:1.6rem;align-items:center}
+    .diffLabel{font-size:.5rem;letter-spacing:.25em;color:var(--fg-dim);text-transform:uppercase;margin-right:.25rem}
+    .diffBtn{
+      padding:.38rem .85rem;font-size:.55rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+      border-radius:8px;border:1px solid var(--border-mid);
+      background:linear-gradient(135deg,#141c24,#0e141a);color:var(--fg-mid);
+      cursor:pointer;transition:border-color .25s,color .25s,box-shadow .25s;
+    }
+    .diffBtn.active{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px -4px rgba(77,163,255,.4)}
+    .diffBtn:hover:not(.active){color:var(--fg)}
+
+    .modeList{list-style:none;width:100%;display:flex;flex-direction:column;gap:.65rem}
+    .modeItem{
+      position:relative;padding:.95rem 1.1rem .95rem 1.4rem;
+      background:rgba(20,28,34,.7);border:1px solid var(--border);border-radius:14px;
+      cursor:pointer;overflow:hidden;backdrop-filter:blur(8px);
+      transition:transform .4s cubic-bezier(.55,.1,.3,1),background .3s,border-color .35s,box-shadow .4s;
+    }
+    .modeItem::before{content:"";position:absolute;left:0;top:0;height:100%;width:0;transition:width .4s cubic-bezier(.55,.1,.3,1)}
+    .modeItem[data-mode="estimate"]::before{background:var(--accent)}
+    .modeItem[data-mode="hold"]::before{background:var(--accent-alt)}
+    .modeItem[data-mode="mirror"]::before{background:linear-gradient(180deg,var(--accent),var(--accent-alt))}
+    .modeItem[data-mode="blind"]::before{background:#ff6b35}
+    .modeItem[data-mode="rhythm"]::before{background:linear-gradient(180deg,#35d96f,#4da3ff)}
+    .modeItem[data-mode="sprint"]::before{background:linear-gradient(180deg,#ffe666,#ff3b30)}
+    .modeItem:hover{transform:translateX(13px) scale(1.025);border-color:#2a3a45;box-shadow:0 8px 28px -12px #000c}
+    .modeItem:hover::before{width:5px}
+    .modeItem:active{transform:translateX(13px) scale(.99)}
+    .modeNum{font-size:.48rem;letter-spacing:.3em;color:var(--fg-dim);text-transform:uppercase;margin-bottom:.2rem}
+    .modeName{font-size:.95rem;font-weight:600;letter-spacing:.16em;color:var(--fg);text-transform:uppercase;margin-bottom:.15rem}
+    .modeDesc{font-size:.65rem;color:var(--fg-mid);letter-spacing:.04em;line-height:1.45;opacity:.8;padding-right:3.5rem}
+    .modeTag{
+      position:absolute;right:.9rem;top:.85rem;
+      font-size:.42rem;letter-spacing:.2em;text-transform:uppercase;
+      padding:.2rem .5rem;border-radius:6px;border:1px solid;
+    }
+    .modeTag.new{color:var(--success);border-color:rgba(53,217,111,.35);background:rgba(53,217,111,.08)}
+    .modeArrow{position:absolute;right:1rem;bottom:.8rem;color:var(--fg-dim);font-size:.9rem;transition:color .3s,transform .3s}
+    .modeItem:hover .modeArrow{color:var(--fg);transform:translateX(4px)}
+
+    /* GAME SCREEN */
+    #gameScreen{
+      position:fixed;inset:0;z-index:800;
+      display:none;flex-direction:column;align-items:center;justify-content:center;
+      padding:.75rem 1rem;gap:.55rem;
+    }
+    #gameScreen.active{display:flex;animation:fadeIn .4s ease}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .gameHeader{position:relative;z-index:1;width:100%;max-width:560px;display:flex;align-items:center;justify-content:space-between}
+    .gameModeBadge{font-size:.48rem;letter-spacing:.28em;color:var(--fg-dim);text-transform:uppercase}
+    .gameModeLabel{font-size:.7rem;font-weight:600;letter-spacing:.2em;color:var(--fg-mid);text-transform:uppercase}
+    .headerRight{display:flex;gap:.5rem;align-items:center}
+    .diffPill{font-size:.48rem;letter-spacing:.2em;text-transform:uppercase;padding:.22rem .6rem;border-radius:6px;border:1px solid rgba(77,163,255,.3);color:var(--accent);background:rgba(77,163,255,.07)}
+    .homeBtn{
+      background:linear-gradient(135deg,#141c24,#0e141a);color:var(--fg);border:1px solid var(--border-mid);
+      padding:.42rem .8rem;font-size:.53rem;border-radius:8px;cursor:pointer;letter-spacing:.15em;
+      font-weight:600;text-transform:uppercase;transition:filter .3s,transform .2s;
+    }
+    .homeBtn:hover{filter:brightness(1.2);transform:scale(1.03)}
+
+    /* ARENA */
+    #arena{
+      position:relative;z-index:1;width:min(460px,94vw);min-height:330px;
+      background:radial-gradient(circle at 50% 45%,#0f161c,#06090d 75%);
+      border:1px solid #141d25;border-radius:22px;overflow:hidden;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.8rem 1.6rem;
+      box-shadow:0 0 60px -20px rgba(77,163,255,.08),0 0 0 1px rgba(255,255,255,.03) inset;
+    }
+    #arena::before{content:"";position:absolute;inset:-1px;border-radius:22px;pointer-events:none;background:linear-gradient(135deg,transparent 40%,rgba(77,163,255,.05) 100%)}
+    .phaseLabel{font-size:.52rem;letter-spacing:.28em;color:var(--fg-dim);text-transform:uppercase;margin-bottom:.7rem;min-height:1em;text-align:center;transition:opacity .3s}
+
+    /* Ring */
+    .ringWrap{position:relative;width:170px;height:170px;display:flex;align-items:center;justify-content:center;margin:.2rem 0}
+    .ringWrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+    .ringTrack{fill:none;stroke:#1a2127;stroke-width:6}
+    .ringFill{fill:none;stroke-width:6;stroke-linecap:round;stroke-dasharray:508;stroke-dashoffset:508;transition:stroke-dashoffset .08s linear,stroke .4s}
+    .ringFill.c-accent{stroke:var(--accent)} .ringFill.c-alt{stroke:var(--accent-alt)}
+    .ringFill.c-success{stroke:var(--success)} .ringFill.c-danger{stroke:var(--danger)}
+    .ringFill.c-warn{stroke:var(--warn)} .ringFill.c-orange{stroke:#ff6b35}
+    .ringCenter{text-align:center}
+    .ringBigNum{font-size:2.5rem;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums;line-height:1.1}
+    .ringBigNum.c-accent{color:var(--accent)} .ringBigNum.c-warn{color:var(--warn)}
+    .ringBigNum.c-success{color:var(--success)} .ringBigNum.c-orange{color:#ff6b35}
+    .ringBigNum.huge{font-size:3.8rem}
+    .ringSubLabel{font-size:.58rem;letter-spacing:.2em;color:var(--fg-mid);text-transform:uppercase;margin-top:.25rem;opacity:.7}
+
+    /* Hold Button */
+    .holdBtn{
+      position:relative;overflow:hidden;width:130px;height:130px;border-radius:50%;
+      background:linear-gradient(145deg,#141c24,#0e141a);border:2px solid var(--border-mid);
+      cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.3rem;
+      transition:border-color .3s,box-shadow .3s,transform .15s;user-select:none;-webkit-user-select:none;outline:none;
+    }
+    .holdBtn:hover:not(:disabled){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 26px -8px rgba(77,163,255,.3)}
+    .holdBtn:disabled{opacity:.35;cursor:not-allowed}
+    .holdBtn.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),0 0 38px -6px rgba(77,163,255,.5);transform:scale(.96);animation:btnGlow 1s ease infinite alternate}
+    @keyframes btnGlow{from{box-shadow:0 0 0 2px var(--accent),0 0 26px -6px rgba(77,163,255,.35)}to{box-shadow:0 0 0 2px var(--accent),0 0 44px -4px rgba(77,163,255,.55)}}
+    .holdBtn.active.c-orange{border-color:#ff6b35;box-shadow:0 0 0 2px #ff6b35,0 0 38px -6px rgba(255,107,53,.5);animation:btnGlowOrange 1s ease infinite alternate}
+    @keyframes btnGlowOrange{from{box-shadow:0 0 0 2px #ff6b35,0 0 26px -6px rgba(255,107,53,.35)}to{box-shadow:0 0 0 2px #ff6b35,0 0 44px -4px rgba(255,107,53,.55)}}
+    .holdBtn.active.c-green{border-color:var(--success);box-shadow:0 0 0 2px var(--success),0 0 38px -6px rgba(53,217,111,.5);animation:btnGlowGreen 1s ease infinite alternate}
+    @keyframes btnGlowGreen{from{box-shadow:0 0 0 2px var(--success),0 0 26px -6px rgba(53,217,111,.35)}to{box-shadow:0 0 0 2px var(--success),0 0 44px -4px rgba(53,217,111,.55)}}
+    .holdBtn.success{border-color:var(--success);box-shadow:0 0 0 2px var(--success),0 0 34px -6px rgba(53,217,111,.45);animation:successPulse .6s ease}
+    @keyframes successPulse{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+    .holdBtn.danger-state{border-color:var(--danger);box-shadow:0 0 0 2px var(--danger),0 0 34px -6px rgba(255,59,48,.45)}
+    .holdBtn .ripple-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;pointer-events:none}
+    .holdBtn.active .ripple-ring{animation:rippleExpand 1.2s ease-out infinite}
+    @keyframes rippleExpand{0%{transform:scale(.8);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+    .btnLabel{font-size:.53rem;letter-spacing:.22em;color:var(--fg-mid);text-transform:uppercase}
+    .btnIcon{font-size:1.5rem;line-height:1}
+
+    /* Countdown */
+    .countdownOverlay{
+      position:absolute;inset:0;background:rgba(5,6,8,.9);backdrop-filter:blur(4px);border-radius:22px;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;z-index:50;
+    }
+    .countdownBig{font-size:7rem;font-weight:700;letter-spacing:-.04em;color:var(--fg);animation:cdPop .3s cubic-bezier(.25,1.5,.5,1)}
+    @keyframes cdPop{from{transform:scale(1.4);opacity:0}to{transform:scale(1);opacity:1}}
+    .countdownLabel{font-size:.52rem;letter-spacing:.3em;color:var(--fg-dim);text-transform:uppercase}
+
+    /* Timer bar */
+    .timerBarWrap{position:absolute;bottom:0;left:0;right:0;height:4px;z-index:10}
+    .timerBar{height:100%;background:linear-gradient(90deg,var(--accent-alt),var(--accent));transition:width .07s linear}
+
+    /* Input */
+    .inputRow{display:flex;align-items:center;gap:.6rem;margin-top:.7rem;animation:slideUp .3s ease}
+    .timeInput{
+      background:linear-gradient(135deg,#141c24,#0e141a);color:var(--fg);border:1px solid var(--border-mid);
+      padding:.6rem .85rem;font-size:1.25rem;font-weight:600;border-radius:10px;width:115px;text-align:center;
+      font-family:"Inter",monospace;outline:none;transition:border-color .3s,box-shadow .3s;
+    }
+    .timeInput:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 16px -8px rgba(77,163,255,.3)}
+    .submitBtn{
+      background:linear-gradient(135deg,var(--accent-alt),var(--accent));color:#fff;border:none;
+      padding:.6rem 1rem;font-size:.58rem;font-weight:700;border-radius:10px;cursor:pointer;
+      letter-spacing:.2em;text-transform:uppercase;transition:filter .25s,transform .15s;
+    }
+    .submitBtn:hover{filter:brightness(1.15);transform:scale(1.04)}
+    .submitBtn:active{transform:scale(.97)}
+
+    /* Result */
+    .resultArea{margin-top:.9rem;text-align:center;min-height:2rem;animation:fadeIn .3s ease}
+    .resultBig{font-size:1.6rem;font-weight:700;letter-spacing:.06em}
+    .resultBig.win{color:var(--success)} .resultBig.lose{color:var(--danger)} .resultBig.warn{color:var(--warn)}
+    .resultSub{font-size:.56rem;letter-spacing:.16em;color:var(--fg-mid);text-transform:uppercase;margin-top:.25rem;opacity:.7}
+    .accuracyMeter{width:100%;max-width:280px;height:5px;background:#1a2127;border-radius:4px;margin-top:.65rem;overflow:hidden}
+    .accuracyFill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.25,1,.5,1),background .4s}
+
+    /* Rhythm */
+    .rhythmDots{display:flex;gap:.45rem;margin:.35rem 0;flex-wrap:wrap;justify-content:center}
+    .rhythmDot{width:11px;height:11px;border-radius:50%;background:#1a2127;border:1px solid var(--border-mid);transition:background .1s,transform .1s,box-shadow .1s}
+    .rhythmDot.beat{background:var(--success);border-color:var(--success);transform:scale(1.5);box-shadow:0 0 8px rgba(53,217,111,.7)}
+    .rhythmDot.tap{background:var(--accent);border-color:var(--accent);transform:scale(1.35);box-shadow:0 0 8px rgba(77,163,255,.6)}
+    .rhythmDot.good{background:var(--success);border-color:var(--success)}
+    .rhythmDot.miss{background:var(--danger);border-color:var(--danger)}
+    .rhythmDot.skip{background:#333;border-color:#333}
+
+    /* Sprint */
+    .sprintProgress{display:flex;gap:.4rem;margin:.2rem 0;align-items:center}
+    .sprintDot{width:10px;height:10px;border-radius:50%;background:#1a2127;border:1px solid var(--border-mid);transition:background .3s,box-shadow .3s}
+    .sprintDot.win{background:var(--success);border-color:var(--success);box-shadow:0 0 6px rgba(53,217,111,.5)}
+    .sprintDot.warn{background:var(--warn);border-color:var(--warn);box-shadow:0 0 6px rgba(255,230,102,.5)}
+    .sprintDot.lose{background:var(--danger);border-color:var(--danger);box-shadow:0 0 6px rgba(255,59,48,.5)}
+    .sprintDot.cur{border-color:var(--accent);animation:dotPulse .7s ease infinite alternate}
+    @keyframes dotPulse{from{box-shadow:0 0 0 0 rgba(77,163,255,.5)}to{box-shadow:0 0 8px 2px rgba(77,163,255,.3)}}
+    .sprintSummary{width:100%;display:flex;flex-direction:column;gap:.4rem;margin-top:.4rem}
+    .sprintRow{display:flex;align-items:center;justify-content:space-between;font-size:.56rem;letter-spacing:.08em;padding:.3rem .5rem;border-radius:8px;background:#0d1419;border:1px solid var(--border)}
+    .sprintRow .rl{color:var(--fg-dim);font-size:.48rem;letter-spacing:.2em;text-transform:uppercase}
+    .sprintRow .ra{font-weight:700}
+
+    /* Mirror */
+    .mirrorRow{display:flex;align-items:center;gap:1.2rem}
+    .mirrorCol{text-align:center}
+    .mirrorColLabel{font-size:.46rem;letter-spacing:.22em;color:var(--fg-dim);text-transform:uppercase;margin-bottom:.22rem}
+    .mirrorTime{font-size:2rem;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums;min-width:85px;text-align:center}
+    .mirrorDivider{width:1px;height:36px;background:var(--border)}
+
+    /* Score */
+    .scoreStrip{position:relative;z-index:1;width:100%;max-width:560px;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+    .scoreChip{background:#11181d;border:1px solid #1e282f;border-radius:20px;padding:.28rem .72rem;font-size:.55rem;font-weight:600;letter-spacing:.1em;display:flex;align-items:center;gap:.35rem;color:var(--fg)}
+    .scoreChip .lbl{color:var(--fg-mid);font-weight:500;opacity:.7}
+    .scoreChip.flash{animation:chipFlash .5s ease}
+    @keyframes chipFlash{0%{border-color:var(--accent);box-shadow:0 0 12px -4px var(--accent)}100%{border-color:#1e282f;box-shadow:none}}
+
+    /* History */
+    .historyStrip{position:relative;z-index:1;display:flex;gap:.32rem;align-items:center;justify-content:center}
+    .histLabel{font-size:.44rem;letter-spacing:.22em;color:var(--fg-dim);text-transform:uppercase;margin-right:.28rem}
+    .histDot{width:8px;height:8px;border-radius:50%;background:#1a2127;border:1px solid var(--border-mid);transition:background .4s,transform .3s}
+    .histDot.win{background:var(--success)} .histDot.warn{background:var(--warn)} .histDot.lose{background:var(--danger)}
+    .histDot.new-entry{animation:histPop .4s cubic-bezier(.25,1.5,.5,1)}
+    @keyframes histPop{from{transform:scale(0)}to{transform:scale(1)}}
+
+    /* Actions */
+    .actionRow{position:relative;z-index:1;display:flex;gap:.6rem}
+    .ghostBtn{
+      background:linear-gradient(135deg,#141c24,#0e141a);color:var(--fg-mid);border:1px solid var(--border-mid);
+      padding:.48rem .9rem;font-size:.53rem;font-weight:600;border-radius:10px;cursor:pointer;
+      letter-spacing:.16em;text-transform:uppercase;transition:filter .25s,color .25s;
+    }
+    .ghostBtn:hover{filter:brightness(1.2);color:var(--fg)}
+
+    /* Blind */
+    .blindMode .ringFill,.blindMode .timerBar{opacity:0!important;transition:none!important}
+    .blindStar{font-size:3rem;color:#ff6b35;animation:starPulse 1.2s ease infinite alternate}
+    @keyframes starPulse{from{opacity:.5;transform:scale(.9)}to{opacity:1;transform:scale(1.1)}}
+
+    /* KBD */
+    .kbdHint{font-size:.43rem;letter-spacing:.14em;color:var(--fg-dim);text-align:center;margin-top:.1rem}
+    kbd{background:#1a2127;border:1px solid var(--border-mid);border-radius:4px;padding:.08rem .28rem;font-family:inherit}
+
+    .hidden{display:none!important}
+    ::-webkit-scrollbar{display:none}
+
+    @media(max-width:480px){
+      .homeTitle{font-size:2.5rem}
+      #arena{min-height:290px;padding:1.4rem 1rem}
+      .ringWrap{width:145px;height:145px}
+      .holdBtn{width:115px;height:115px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="homeScreen">
+  <div class="homeContainer">
+    <div class="homeTitle">TEMPO</div>
+    <div class="homeSubtitle">Time Perception Training</div>
+    <div class="diffRow">
+      <span class="diffLabel">Difficulty</span>
+      <button class="diffBtn active" data-diff="easy">Easy</button>
+      <button class="diffBtn" data-diff="normal">Normal</button>
+      <button class="diffBtn" data-diff="hard">Hard</button>
+    </div>
+    <ul class="modeList">
+      <li class="modeItem" data-mode="estimate" tabindex="0">
+        <div class="modeNum">01</div><div class="modeName">Estimate</div>
+        <div class="modeDesc">An interval runs for a random time. Count in your head, then type how long it lasted.</div>
+        <span class="modeArrow">&#x2192;</span>
+      </li>
+      <li class="modeItem" data-mode="hold" tabindex="0">
+        <div class="modeNum">02</div><div class="modeName">Hold</div>
+        <div class="modeDesc">A target duration is shown. Hold the button for exactly that long, then release.</div>
+        <span class="modeArrow">&#x2192;</span>
+      </li>
+      <li class="modeItem" data-mode="mirror" tabindex="0">
+        <div class="modeNum">03</div><div class="modeName">Mirror</div>
+        <div class="modeDesc">Watch an interval play out, then mirror it by holding for the same duration.</div>
+        <span class="modeArrow">&#x2192;</span>
+      </li>
+      <li class="modeItem" data-mode="blind" tabindex="0">
+        <div class="modeNum">04</div><div class="modeName">Blind Hold</div>
+        <div class="modeDesc">Like Hold but all visual feedback is removed. Pure instinct &mdash; no ring, no bar.</div>
+        <span class="modeTag new">NEW</span>
+        <span class="modeArrow">&#x2192;</span>
+      </li>
+      <li class="modeItem" data-mode="rhythm" tabindex="0">
+        <div class="modeNum">05</div><div class="modeName">Rhythm</div>
+        <div class="modeDesc">A metronome plays at a hidden BPM. Tap to match the exact tempo for 8 beats.</div>
+        <span class="modeTag new">NEW</span>
+        <span class="modeArrow">&#x2192;</span>
+      </li>
+      <li class="modeItem" data-mode="sprint" tabindex="0">
+        <div class="modeNum">06</div><div class="modeName">Sprint</div>
+        <div class="modeDesc">5 rapid-fire Estimate rounds back-to-back. Full breakdown summary at the end.</div>
+        <span class="modeTag new">NEW</span>
+        <span class="modeArrow">&#x2192;</span>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen">
+  <div class="gameHeader">
+    <div>
+      <div class="gameModeBadge">Mode</div>
+      <div class="gameModeLabel" id="gameModeLabel">&#x2014;</div>
+    </div>
+    <div class="headerRight">
+      <div class="diffPill" id="diffPill">Easy</div>
+      <button class="homeBtn" id="backHomeBtn">&#x2190; Home</button>
+    </div>
+  </div>
+
+  <div id="arena">
+    <div class="countdownOverlay hidden" id="countdownOverlay">
+      <div class="countdownBig" id="countdownNum">3</div>
+      <div class="countdownLabel">Get ready&hellip;</div>
+    </div>
+    <div class="timerBarWrap hidden" id="timerBarWrap">
+      <div class="timerBar" id="timerBar" style="width:0%"></div>
+    </div>
+    <div class="phaseLabel" id="phaseLabel"></div>
+
+    <!-- ESTIMATE -->
+    <div id="estimateView" class="hidden" style="display:flex;flex-direction:column;align-items:center">
+      <div class="ringWrap">
+        <svg viewBox="0 0 180 180"><circle class="ringTrack" cx="90" cy="90" r="81"/><circle class="ringFill c-accent" id="estimateRing" cx="90" cy="90" r="81"/></svg>
+        <div class="ringCenter">
+          <div class="ringBigNum c-accent huge" id="estimateDot">&#x25CF;</div>
+          <div class="ringSubLabel" id="estimateSubLabel">active</div>
+        </div>
+      </div>
+      <div class="inputRow hidden" id="estimateInputRow">
+        <input class="timeInput" id="estimateInput" type="number" min="0" max="99.99" step="0.01" placeholder="0.00" />
+        <button class="submitBtn" id="estimateSubmit">Submit</button>
+      </div>
+      <div class="kbdHint" id="estimateKbd"><kbd>Enter</kbd> to submit</div>
+    </div>
+
+    <!-- HOLD -->
+    <div id="holdView" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:.8rem">
+      <div class="ringWrap">
+        <svg viewBox="0 0 180 180"><circle class="ringTrack" cx="90" cy="90" r="81"/><circle class="ringFill c-alt" id="holdRing" cx="90" cy="90" r="81"/></svg>
+        <div class="ringCenter">
+          <div class="ringBigNum" id="holdTargetNum" style="font-size:2.1rem">&#x2014;</div>
+          <div class="ringSubLabel" id="holdSubLabel">target</div>
+        </div>
+      </div>
+      <button class="holdBtn hidden" id="holdBtn" disabled>
+        <div class="ripple-ring"></div>
+        <div class="btnIcon">&#x23F1;</div>
+        <div class="btnLabel">Hold</div>
+      </button>
+      <div class="kbdHint"><kbd>Space</kbd> to hold &amp; release</div>
+    </div>
+
+    <!-- MIRROR -->
+    <div id="mirrorView" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:.8rem">
+      <div class="mirrorRow">
+        <div class="mirrorCol">
+          <div class="mirrorColLabel">Original</div>
+          <div class="mirrorTime" id="mirrorOriginal">&#x2014;</div>
+        </div>
+        <div class="mirrorDivider"></div>
+        <div class="mirrorCol">
+          <div class="mirrorColLabel">Your hold</div>
+          <div class="mirrorTime" id="mirrorYours">&#x2014;</div>
+        </div>
+      </div>
+      <button class="holdBtn hidden" id="mirrorBtn" disabled>
+        <div class="ripple-ring"></div>
+        <div class="btnIcon">&#x23F1;</div>
+        <div class="btnLabel">Mirror</div>
+      </button>
+      <div class="kbdHint"><kbd>Space</kbd> to hold &amp; release</div>
+    </div>
+
+    <!-- BLIND -->
+    <div id="blindView" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:.8rem">
+      <div class="ringWrap" id="blindRingWrap">
+        <svg viewBox="0 0 180 180"><circle class="ringTrack" cx="90" cy="90" r="81"/><circle class="ringFill c-orange" id="blindRing" cx="90" cy="90" r="81"/></svg>
+        <div class="ringCenter">
+          <div class="ringBigNum c-orange" id="blindTargetNum" style="font-size:2.1rem">&#x2014;</div>
+          <div class="ringSubLabel" id="blindSubLabel">target</div>
+        </div>
+      </div>
+      <button class="holdBtn hidden" id="blindBtn" disabled>
+        <div class="ripple-ring" style="border-color:#ff6b35"></div>
+        <div class="btnIcon">&#x1F9FF;</div>
+        <div class="btnLabel">Blind</div>
+      </button>
+      <div class="kbdHint"><kbd>Space</kbd> to hold &amp; release</div>
+    </div>
+
+    <!-- RHYTHM -->
+    <div id="rhythmView" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:.7rem">
+      <div class="ringWrap">
+        <svg viewBox="0 0 180 180"><circle class="ringTrack" cx="90" cy="90" r="81"/><circle class="ringFill c-success" id="rhythmRing" cx="90" cy="90" r="81"/></svg>
+        <div class="ringCenter">
+          <div class="ringBigNum c-success" id="rhythmBig" style="font-size:1.8rem">&#x2014;</div>
+          <div class="ringSubLabel" id="rhythmSubLabel">listen&hellip;</div>
+        </div>
+      </div>
+      <div class="rhythmDots" id="rhythmDots"></div>
+      <button class="holdBtn hidden" id="rhythmBtn" disabled style="width:120px;height:120px">
+        <div class="ripple-ring" style="border-color:var(--success)"></div>
+        <div class="btnIcon" style="font-size:1.4rem">&#x1F941;</div>
+        <div class="btnLabel">TAP</div>
+      </button>
+      <div class="kbdHint"><kbd>Space</kbd> to tap</div>
+    </div>
+
+    <!-- SPRINT -->
+    <div id="sprintView" class="hidden" style="display:flex;flex-direction:column;align-items:center;gap:.6rem;width:100%">
+      <div class="sprintProgress" id="sprintProgress"></div>
+      <div class="ringWrap" style="width:150px;height:150px">
+        <svg viewBox="0 0 180 180"><circle class="ringTrack" cx="90" cy="90" r="81"/><circle class="ringFill c-accent" id="sprintRing" cx="90" cy="90" r="81"/></svg>
+        <div class="ringCenter">
+          <div class="ringBigNum c-accent huge" id="sprintDot">&#x25CF;</div>
+          <div class="ringSubLabel" id="sprintSubLabel">active</div>
+        </div>
+      </div>
+      <div class="inputRow hidden" id="sprintInputRow">
+        <input class="timeInput" id="sprintInput" type="number" min="0" max="99.99" step="0.01" placeholder="0.00" />
+        <button class="submitBtn" id="sprintSubmit">&#x21B5;</button>
+      </div>
+      <div class="sprintSummary hidden" id="sprintSummary"></div>
+      <div class="kbdHint"><kbd>Enter</kbd> each round</div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="resultArea hidden" id="resultArea">
+      <div class="resultBig" id="resultBig">&#x2014;</div>
+      <div class="resultSub" id="resultSub">&#x2014;</div>
+      <div class="accuracyMeter hidden" id="accuracyMeter">
+        <div class="accuracyFill" id="accuracyFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scoreStrip">
+    <div class="scoreChip" id="chip-score"><span class="lbl">Score</span><span id="scoreVal">0</span></div>
+    <div class="scoreChip" id="chip-streak"><span class="lbl">Streak</span><span id="streakVal">0</span></div>
+    <div class="scoreChip" id="chip-avg"><span class="lbl">Avg&nbsp;%</span><span id="avgVal">&#x2014;</span></div>
+    <div class="scoreChip" id="chip-best"><span class="lbl">Best&nbsp;%</span><span id="bestVal">&#x2014;</span></div>
+  </div>
+
+  <div class="historyStrip">
+    <span class="histLabel">Last 7</span>
+    <div class="histDot" id="h0"></div><div class="histDot" id="h1"></div>
+    <div class="histDot" id="h2"></div><div class="histDot" id="h3"></div>
+    <div class="histDot" id="h4"></div><div class="histDot" id="h5"></div>
+    <div class="histDot" id="h6"></div>
+  </div>
+
+  <div class="actionRow">
+    <button class="ghostBtn" id="playAgainBtn">Play Again &nbsp;(R)</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* Audio */
+let actx=null;
+function getCtx(){ if(!actx) actx=new(window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
+function tone(freq,type,dur,vol,when){
+  try{
+    const c=getCtx(),t=(when!==undefined)?when:c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type=type||'sine';o.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||.18,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.start(t);o.stop(t+dur+.05);
+  }catch(e){}
+}
+function sndCountdown(n){ if(n>0) tone(n===1?660:440,'sine',.13,.22); else{const c=getCtx(),t=c.currentTime;tone(880,'sine',.18,.28,t);tone(1100,'sine',.14,.2,t+.05);} }
+function sndStart(){const c=getCtx(),t=c.currentTime;tone(660,'sine',.1,.2,t);tone(880,'sine',.1,.15,t+.08);}
+function sndStop(){const c=getCtx(),t=c.currentTime;tone(440,'sine',.1,.2,t);tone(330,'sine',.1,.12,t+.07);}
+function sndActivate(){tone(1100,'sine',.08,.18);}
+function sndWin(acc){const c=getCtx(),t=c.currentTime,b=acc>.9?880:acc>.7?660:550;tone(b,'sine',.2,.25,t);tone(b*1.25,'sine',.15,.2,t+.1);tone(b*1.5,'sine',.1,.14,t+.22);}
+function sndLose(){const c=getCtx(),t=c.currentTime;tone(300,'sawtooth',.14,.18,t);tone(220,'sawtooth',.1,.14,t+.1);}
+function sndBeat(hi){tone(hi?900:660,'square',.05,.14);}
+function sndTap(){tone(1046,'sine',.08,.18);}
+
+/* DOM */
+const $=id=>document.getElementById(id);
+const homeScreen=$('homeScreen'),gameScreen=$('gameScreen');
+const gameModeLabel=$('gameModeLabel'),diffPill=$('diffPill');
+const backHomeBtn=$('backHomeBtn'),playAgainBtn=$('playAgainBtn');
+const countdownOverlay=$('countdownOverlay'),countdownNum=$('countdownNum');
+const timerBarWrap=$('timerBarWrap'),timerBar=$('timerBar');
+const phaseLabel=$('phaseLabel');
+const estimateView=$('estimateView'),estimateDot=$('estimateDot'),estimateSubLabel=$('estimateSubLabel');
+const estimateRing=$('estimateRing'),estimateInputRow=$('estimateInputRow');
+const estimateInput=$('estimateInput'),estimateSubmit=$('estimateSubmit'),estimateKbd=$('estimateKbd');
+const holdView=$('holdView'),holdTargetNum=$('holdTargetNum'),holdSubLabel=$('holdSubLabel');
+const holdRing=$('holdRing'),holdBtn=$('holdBtn');
+const mirrorView=$('mirrorView'),mirrorOriginal=$('mirrorOriginal'),mirrorYours=$('mirrorYours'),mirrorBtn=$('mirrorBtn');
+const blindView=$('blindView'),blindTargetNum=$('blindTargetNum'),blindSubLabel=$('blindSubLabel');
+const blindRing=$('blindRing'),blindBtn=$('blindBtn'),blindRingWrap=$('blindRingWrap');
+const rhythmView=$('rhythmView'),rhythmBig=$('rhythmBig'),rhythmSubLabel=$('rhythmSubLabel');
+const rhythmRing=$('rhythmRing'),rhythmDots=$('rhythmDots'),rhythmBtn=$('rhythmBtn');
+const sprintView=$('sprintView'),sprintProgress=$('sprintProgress');
+const sprintRing=$('sprintRing'),sprintDot=$('sprintDot'),sprintSubLabel=$('sprintSubLabel');
+const sprintInputRow=$('sprintInputRow'),sprintInput=$('sprintInput'),sprintSubmit=$('sprintSubmit');
+const sprintSummary=$('sprintSummary');
+const resultArea=$('resultArea'),resultBig=$('resultBig'),resultSub=$('resultSub');
+const accuracyMeter=$('accuracyMeter'),accuracyFill=$('accuracyFill');
+const scoreVal=$('scoreVal'),streakVal=$('streakVal'),avgVal=$('avgVal'),bestVal=$('bestVal');
+const HIST=[0,1,2,3,4,5,6].map(i=>$('h'+i));
+
+/* Config */
+const DCFG={
+  easy:  {minT:1.5,maxT:7, bpmMin:60, bpmMax:100},
+  normal:{minT:1,  maxT:10,bpmMin:70, bpmMax:140},
+  hard:  {minT:.5, maxT:10,bpmMin:90, bpmMax:180},
+};
+const SPRINT_ROUNDS=5, RHYTHM_BEATS=8;
+
+/* State */
+let mode=null,difficulty='easy',phase='idle';
+let timers=[],rafId=null,rhythmTimerId=null;
+let targetTime=0,isHolding=false,holdStart=0;
+let rhythmBPM=0,rhythmInterval=0,rhythmBeatTs=[],rhythmTapTs=[],rhythmTapPhase=false,rhythmBeat=0;
+let sprintRound=0,sprintResults=[];
+let stats={score:0,streak:0,best:null,history:[],totalAcc:0,rounds:0};
+
+/* Helpers */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=v=>parseFloat(v).toFixed(2);
+const CIRC=2*Math.PI*81;
+const dcfg=()=>DCFG[difficulty];
+function setRing(el,p){el.style.strokeDashoffset=CIRC-clamp(p,0,1)*CIRC;}
+function clearTimers(){timers.forEach(clearTimeout);timers=[];if(rafId){cancelAnimationFrame(rafId);rafId=null;}if(rhythmTimerId){clearTimeout(rhythmTimerId);rhythmTimerId=null;}}
+function T(fn,ms){const id=setTimeout(fn,ms);timers.push(id);return id;}
+function setPhase(t){phaseLabel.textContent=t;}
+function grade(acc){
+  if(acc>=.97)return{label:'PERFECT',cls:'win'};
+  if(acc>=.90)return{label:'EXCELLENT',cls:'win'};
+  if(acc>=.75)return{label:'GOOD',cls:'warn'};
+  if(acc>=.55)return{label:'CLOSE',cls:'warn'};
+  return{label:'MISS',cls:'lose'};
+}
+function showResult(big,bigCls,sub,acc){
+  resultBig.textContent=big;resultBig.className='resultBig '+bigCls;
+  resultSub.textContent=sub;resultArea.classList.remove('hidden');
+  if(acc!==undefined){
+    accuracyMeter.classList.remove('hidden');
+    const pct=clamp(acc*100,0,100);
+    accuracyFill.style.width=pct+'%';
+    accuracyFill.style.background=acc>.9?'var(--success)':acc>.65?'var(--warn)':'var(--danger)';
+  } else accuracyMeter.classList.add('hidden');
+}
+function record(acc){
+  const pct=Math.round(acc*100);
+  stats.rounds++;stats.totalAcc+=acc;
+  const cls=acc>=.75?'win':acc>=.55?'warn':'lose';
+  stats.history.push(cls);
+  if(stats.history.length>7)stats.history.shift();
+  if(acc>=.75){stats.score++;stats.streak++;}else{stats.streak=0;}
+  if(stats.best===null||pct>stats.best)stats.best=pct;
+  const avg=Math.round(stats.totalAcc/stats.rounds*100);
+  scoreVal.textContent=stats.score;streakVal.textContent=stats.streak;
+  avgVal.textContent=avg+'%';bestVal.textContent=stats.best+'%';
+  ['chip-score','chip-streak','chip-avg','chip-best'].forEach(id=>{const el=$(id);el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');});
+  updateHistory();
+}
+function updateHistory(){
+  HIST.forEach((d,i)=>{
+    const h=stats.history[i];
+    const prev=d.className;
+    d.className='histDot'+(h?' '+h:'');
+    if(h&&!prev.includes(h))d.classList.add('new-entry');
+  });
+}
+
+/* Navigation */
+function goHome(){
+  clearTimers();phase='idle';isHolding=false;
+  gameScreen.classList.remove('active');
+  homeScreen.classList.remove('exit');homeScreen.style.display='flex';
+  resetViews();
+}
+function startMode(m){
+  mode=m;homeScreen.classList.add('exit');T(()=>{homeScreen.style.display='none';},480);
+  gameScreen.classList.add('active');
+  const labels={estimate:'Estimate',hold:'Hold',mirror:'Mirror',blind:'Blind Hold',rhythm:'Rhythm',sprint:'Sprint'};
+  gameModeLabel.textContent=labels[m];
+  diffPill.textContent=difficulty.charAt(0).toUpperCase()+difficulty.slice(1);
+  resetViews();T(()=>beginRound(),100);
+}
+function resetViews(){
+  [estimateView,holdView,mirrorView,blindView,rhythmView,sprintView].forEach(v=>v.classList.add('hidden'));
+  resultArea.classList.add('hidden');countdownOverlay.classList.add('hidden');
+  timerBarWrap.classList.add('hidden');timerBar.style.width='0%';
+  phaseLabel.textContent='';
+  estimateInputRow.classList.add('hidden');estimateInput.value='';estimateKbd&&estimateKbd.classList.remove('hidden');
+  [estimateRing,holdRing,blindRing,rhythmRing,sprintRing].forEach(r=>setRing(r,0));
+  estimateRing.className='ringFill c-accent';holdRing.className='ringFill c-alt';
+  blindRing.className='ringFill c-orange';rhythmRing.className='ringFill c-success';
+  [holdBtn,mirrorBtn,blindBtn,rhythmBtn].forEach(b=>{b.classList.remove('active','success','danger-state');b.classList.add('hidden');b.disabled=true;});
+  mirrorOriginal.textContent='--';mirrorYours.textContent='--';
+  estimateDot.textContent='\u25CF';estimateDot.className='ringBigNum c-accent huge';
+  holdTargetNum.textContent='--';blindTargetNum.textContent='--';rhythmBig.textContent='--';
+  rhythmDots.innerHTML='';
+  sprintInputRow.classList.add('hidden');sprintInput.value='';
+  sprintSummary.classList.add('hidden');sprintSummary.innerHTML='';sprintProgress.innerHTML='';
+  accuracyMeter.classList.add('hidden');isHolding=false;
+  blindRingWrap.classList.remove('blindMode');
+}
+
+/* Countdown */
+function countdown(cb){
+  countdownOverlay.classList.remove('hidden');phase='countdown';let n=3;
+  countdownNum.textContent=n;sndCountdown(n);
+  function tick(){
+    n--;
+    if(n>0){countdownNum.textContent=n;countdownNum.style.animation='none';void countdownNum.offsetWidth;countdownNum.style.animation='';sndCountdown(n);T(tick,1000);}
+    else{countdownNum.textContent='GO';countdownNum.style.animation='none';void countdownNum.offsetWidth;countdownNum.style.animation='';sndCountdown(0);T(()=>{countdownOverlay.classList.add('hidden');cb();},600);}
+  }
+  T(tick,1000);
+}
+
+/* ESTIMATE */
+function beginEstimate(){
+  estimateView.classList.remove('hidden');
+  const cfg=dcfg();targetTime=parseFloat(rnd(cfg.minT,cfg.maxT).toFixed(2));
+  setPhase('Interval active \u2014 count in your head');phase='active';
+  timerBarWrap.classList.remove('hidden');sndActivate();
+  const start=performance.now();
+  function anim(){if(phase!=='active')return;const e=(performance.now()-start)/1000;setRing(estimateRing,e/cfg.maxT);timerBar.style.width=clamp(e/targetTime*100,0,100)+'%';rafId=requestAnimationFrame(anim);}
+  anim();T(()=>endEstimateActive(),targetTime*1000);
+}
+function endEstimateActive(){
+  clearTimers();phase='input';sndStop();timerBarWrap.classList.add('hidden');timerBar.style.width='0%';
+  estimateDot.textContent='?';estimateDot.className='ringBigNum c-warn huge';
+  estimateSubLabel.textContent='how long?';setPhase('Enter your estimate (seconds)');
+  estimateInputRow.classList.remove('hidden');T(()=>estimateInput.focus(),50);
+}
+function submitEstimate(){
+  if(phase!=='input')return;const val=parseFloat(estimateInput.value);
+  if(isNaN(val)||val<=0){estimateInput.focus();return;}
+  phase='result';const diff=Math.abs(val-targetTime),acc=clamp(1-diff/targetTime,0,1);
+  const g=grade(acc),sign=val>targetTime?'+':'';
+  estimateInputRow.classList.add('hidden');estimateKbd&&estimateKbd.classList.add('hidden');
+  showResult(g.label,g.cls,'You: '+fmt(val)+'s \u00B7 Actual: '+fmt(targetTime)+'s \u00B7 Error: '+sign+fmt(val-targetTime)+'s',acc);
+  if(acc>=.75)sndWin(acc);else sndLose();record(acc);
+}
+
+/* HOLD */
+function beginHold(){
+  holdView.classList.remove('hidden');const cfg=dcfg();
+  targetTime=parseFloat(rnd(cfg.minT,cfg.maxT).toFixed(2));
+  holdTargetNum.textContent=fmt(targetTime)+'s';holdSubLabel.textContent='target';
+  setPhase('Study the target, then hold for exactly that long');phase='input';
+  const dur=Math.min(targetTime,5),s0=performance.now();
+  function sa(){if(phase!=='input')return;const e=(performance.now()-s0)/1000;setRing(holdRing,e/dur);if(e<dur)rafId=requestAnimationFrame(sa);else{setRing(holdRing,1);T(()=>readyToHold(),300);}}
+  sa();
+}
+function readyToHold(){setRing(holdRing,0);holdSubLabel.textContent='ready';holdBtn.classList.remove('hidden');holdBtn.disabled=false;phase='holding';setPhase('Press & hold \u2014 release when done');}
+function doHoldPress(){
+  if(phase!=='holding'||isHolding)return;isHolding=true;holdStart=performance.now();
+  holdBtn.classList.add('active');sndStart();
+  function anim(){if(!isHolding)return;const h=(performance.now()-holdStart)/1000;setRing(holdRing,h/targetTime);if(h>=targetTime*3)doHoldRelease();else rafId=requestAnimationFrame(anim);}
+  anim();
+}
+function doHoldRelease(){
+  if(!isHolding)return;isHolding=false;const held=(performance.now()-holdStart)/1000;
+  holdBtn.classList.remove('active');holdBtn.disabled=true;clearTimers();sndStop();phase='result';
+  const diff=Math.abs(held-targetTime),acc=clamp(1-diff/targetTime,0,1);
+  const g=grade(acc),sign=held>targetTime?'+':'';
+  showResult(g.label,g.cls,'You: '+fmt(held)+'s \u00B7 Target: '+fmt(targetTime)+'s \u00B7 Error: '+sign+fmt(held-targetTime)+'s',acc);
+  holdBtn.classList.add(acc>=.75?'success':'danger-state');
+  if(acc>=.75)sndWin(acc);else sndLose();record(acc);
+}
+
+/* MIRROR */
+function beginMirror(){
+  mirrorView.classList.remove('hidden');const cfg=dcfg();
+  targetTime=parseFloat(rnd(cfg.minT,cfg.maxT).toFixed(2));
+  setPhase('Watch the interval carefully');phase='active';
+  timerBarWrap.classList.remove('hidden');sndActivate();
+  const start=performance.now();
+  function anim(){if(phase!=='active')return;timerBar.style.width=clamp((performance.now()-start)/1000/targetTime*100,0,100)+'%';rafId=requestAnimationFrame(anim);}
+  anim();T(()=>endMirrorShow(),targetTime*1000);
+}
+function endMirrorShow(){
+  clearTimers();sndStop();timerBarWrap.classList.add('hidden');timerBar.style.width='0%';
+  phase='holding';mirrorOriginal.textContent=fmt(targetTime)+'s';
+  setPhase('Now mirror it \u2014 hold for the same duration');
+  T(()=>{mirrorBtn.classList.remove('hidden');mirrorBtn.disabled=false;},300);
+}
+function doMirrorPress(){
+  if(phase!=='holding'||isHolding)return;isHolding=true;holdStart=performance.now();
+  mirrorBtn.classList.add('active');mirrorYours.textContent='0.00s';sndStart();
+  timerBarWrap.classList.remove('hidden');timerBar.style.width='0%';
+  function anim(){if(!isHolding)return;const h=(performance.now()-holdStart)/1000;mirrorYours.textContent=h.toFixed(2)+'s';timerBar.style.width=clamp(h/targetTime*100,0,100)+'%';if(h>=targetTime*3)doMirrorRelease();else rafId=requestAnimationFrame(anim);}
+  anim();
+}
+function doMirrorRelease(){
+  if(!isHolding)return;isHolding=false;const held=(performance.now()-holdStart)/1000;
+  mirrorBtn.classList.remove('active');mirrorBtn.disabled=true;clearTimers();sndStop();
+  timerBarWrap.classList.add('hidden');mirrorYours.textContent=fmt(held)+'s';phase='result';
+  const diff=Math.abs(held-targetTime),acc=clamp(1-diff/targetTime,0,1);
+  const g=grade(acc),sign=held>targetTime?'+':'';
+  showResult(g.label,g.cls,'You: '+fmt(held)+'s \u00B7 Original: '+fmt(targetTime)+'s \u00B7 Error: '+sign+fmt(held-targetTime)+'s',acc);
+  mirrorBtn.classList.add(acc>=.75?'success':'danger-state');
+  if(acc>=.75)sndWin(acc);else sndLose();record(acc);
+}
+
+/* BLIND HOLD */
+function beginBlind(){
+  blindView.classList.remove('hidden');const cfg=dcfg();
+  targetTime=parseFloat(rnd(cfg.minT,cfg.maxT).toFixed(2));
+  blindTargetNum.textContent=fmt(targetTime)+'s';blindSubLabel.textContent='memorise this';
+  setPhase('Memorise the target \u2014 visual feedback will be hidden');phase='input';
+  blindRingWrap.classList.remove('blindMode');
+  const dur=Math.min(targetTime,4),s0=performance.now();
+  function sa(){if(phase!=='input')return;const e=(performance.now()-s0)/1000;setRing(blindRing,e/dur);if(e<dur)rafId=requestAnimationFrame(sa);else{setRing(blindRing,1);T(()=>readyToBlind(),400);}}
+  sa();
+}
+function readyToBlind(){
+  blindRingWrap.classList.add('blindMode');setRing(blindRing,0);
+  blindTargetNum.textContent='?';blindSubLabel.textContent='no visual feedback!';
+  blindBtn.classList.remove('hidden');blindBtn.disabled=false;
+  phase='holding';setPhase('Hold for the memorised duration \u2014 pure instinct');
+}
+function doBlindPress(){if(phase!=='holding'||isHolding)return;isHolding=true;holdStart=performance.now();blindBtn.classList.add('active');sndStart();}
+function doBlindRelease(){
+  if(!isHolding)return;isHolding=false;const held=(performance.now()-holdStart)/1000;
+  blindBtn.classList.remove('active');blindBtn.disabled=true;clearTimers();sndStop();phase='result';
+  blindRingWrap.classList.remove('blindMode');
+  setRing(blindRing,clamp(held/targetTime,0,1.5));
+  blindTargetNum.textContent=fmt(held)+'s';blindSubLabel.textContent='vs '+fmt(targetTime)+'s';
+  const diff=Math.abs(held-targetTime),acc=clamp(1-diff/targetTime,0,1);
+  const g=grade(acc),sign=held>targetTime?'+':'';
+  showResult(g.label,g.cls,'You: '+fmt(held)+'s \u00B7 Target: '+fmt(targetTime)+'s \u00B7 Error: '+sign+fmt(held-targetTime)+'s',acc);
+  blindBtn.classList.add(acc>=.75?'success':'danger-state');
+  if(acc>=.75)sndWin(acc);else sndLose();record(acc);
+}
+
+/* RHYTHM */
+function beginRhythm(){
+  rhythmView.classList.remove('hidden');const cfg=dcfg();
+  rhythmBPM=Math.round(rnd(cfg.bpmMin,cfg.bpmMax));
+  rhythmInterval=60000/rhythmBPM;rhythmBeatTs=[];rhythmTapTs=[];rhythmTapPhase=false;rhythmBeat=0;
+  rhythmDots.innerHTML='';
+  for(let i=0;i<RHYTHM_BEATS;i++){const d=document.createElement('div');d.className='rhythmDot';rhythmDots.appendChild(d);}
+  setPhase('Listen carefully \u2014 match the tempo');rhythmBig.textContent='';rhythmSubLabel.textContent='listen\u2026';phase='active';
+  function playBeat(){
+    if(phase!=='active')return;
+    rhythmBeatTs.push(performance.now());sndBeat(rhythmBeat%2===0);
+    const dots=rhythmDots.children;
+    if(dots[rhythmBeat]){dots[rhythmBeat].classList.add('beat');const b=rhythmBeat;setTimeout(()=>dots[b]&&dots[b].classList.remove('beat'),100);}
+    setRing(rhythmRing,(rhythmBeat+1)/RHYTHM_BEATS);rhythmBeat++;
+    if(rhythmBeat<RHYTHM_BEATS){rhythmTimerId=setTimeout(playBeat,rhythmInterval);}
+    else{rhythmTimerId=setTimeout(endRhythmListen,rhythmInterval);}
+  }
+  setTimeout(playBeat,500);
+}
+function endRhythmListen(){
+  rhythmTapPhase=true;rhythmSubLabel.textContent='now tap along!';
+  setPhase('Tap the beat \u2014 match the same tempo for '+RHYTHM_BEATS+' beats');
+  setRing(rhythmRing,0);for(let d of rhythmDots.children)d.className='rhythmDot';
+  rhythmBtn.classList.remove('hidden');rhythmBtn.disabled=false;
+  phase='holding';T(()=>endRhythmTap(),rhythmInterval*RHYTHM_BEATS*2.5+1500);
+}
+function doRhythmTap(){
+  if(phase!=='holding'||!rhythmTapPhase)return;
+  const now=performance.now();rhythmTapTs.push(now);sndTap();
+  const idx=rhythmTapTs.length-1;const dots=rhythmDots.children;
+  if(dots[idx]){dots[idx].classList.add('tap');const i2=idx;setTimeout(()=>dots[i2]&&dots[i2].classList.remove('tap'),130);}
+  setRing(rhythmRing,rhythmTapTs.length/RHYTHM_BEATS);
+  if(rhythmTapTs.length>=RHYTHM_BEATS)endRhythmTap();
+}
+function endRhythmTap(){
+  clearTimers();phase='result';rhythmBtn.disabled=true;rhythmBtn.classList.remove('active');
+  if(rhythmTapTs.length<2){showResult('MISS','lose','Not enough taps',0);sndLose();record(0);return;}
+  const ivals=[];for(let i=1;i<rhythmTapTs.length;i++)ivals.push(rhythmTapTs[i]-rhythmTapTs[i-1]);
+  const avg=ivals.reduce((a,b)=>a+b,0)/ivals.length;
+  const error=Math.abs(avg-rhythmInterval)/rhythmInterval;
+  const acc=clamp(1-error,0,1);const userBPM=Math.round(60000/avg);
+  const g=grade(acc);
+  const dots=rhythmDots.children;
+  for(let i=0;i<rhythmTapTs.length&&i<dots.length;i++){
+    if(i===0){dots[i].className='rhythmDot good';continue;}
+    const e2=Math.abs((rhythmTapTs[i]-rhythmTapTs[i-1])-rhythmInterval)/rhythmInterval;
+    dots[i].className='rhythmDot '+(e2<.12?'good':'miss');
+  }
+  rhythmBig.textContent=rhythmBPM+' BPM';rhythmSubLabel.textContent='you tapped ~'+userBPM+' BPM';
+  showResult(g.label,g.cls,'Target: '+rhythmBPM+' BPM \u00B7 Yours: ~'+userBPM+' BPM \u00B7 Error: '+Math.round(error*100)+'%',acc);
+  if(acc>=.75)sndWin(acc);else sndLose();record(acc);
+}
+
+/* SPRINT */
+function beginSprint(){
+  sprintView.classList.remove('hidden');sprintRound=0;sprintResults=[];
+  sprintProgress.innerHTML='';
+  for(let i=0;i<SPRINT_ROUNDS;i++){const d=document.createElement('div');d.className='sprintDot'+(i===0?' cur':'');sprintProgress.appendChild(d);}
+  nextSprintRound();
+}
+function nextSprintRound(){
+  if(sprintRound>=SPRINT_ROUNDS){endSprint();return;}
+  const cfg=dcfg();targetTime=parseFloat(rnd(cfg.minT,cfg.maxT).toFixed(2));
+  sprintInput.value='';sprintInputRow.classList.add('hidden');sprintSummary.classList.add('hidden');
+  resultArea.classList.add('hidden');sprintDot.textContent='\u25CF';sprintDot.className='ringBigNum c-accent huge';
+  setPhase('Round '+(sprintRound+1)+' of '+SPRINT_ROUNDS);phase='active';
+  setRing(sprintRing,0);timerBarWrap.classList.remove('hidden');sndActivate();
+  const start=performance.now();
+  function anim(){if(phase!=='active')return;const e=(performance.now()-start)/1000;setRing(sprintRing,e/cfg.maxT);timerBar.style.width=clamp(e/targetTime*100,0,100)+'%';rafId=requestAnimationFrame(anim);}
+  anim();T(()=>endSprintInterval(),targetTime*1000);
+}
+function endSprintInterval(){
+  clearTimers();phase='input';sndStop();timerBarWrap.classList.add('hidden');timerBar.style.width='0%';
+  sprintDot.textContent='?';sprintDot.className='ringBigNum c-warn huge';sprintSubLabel.textContent='how long?';
+  sprintInputRow.classList.remove('hidden');T(()=>sprintInput.focus(),50);
+}
+function submitSprint(){
+  if(phase!=='input')return;const val=parseFloat(sprintInput.value);if(isNaN(val)||val<=0){sprintInput.focus();return;}
+  const diff=Math.abs(val-targetTime),acc=clamp(1-diff/targetTime,0,1);
+  sprintResults.push({round:sprintRound+1,guess:val,actual:targetTime,acc});
+  const dots=sprintProgress.children;
+  if(dots[sprintRound]){const g=grade(acc);dots[sprintRound].className='sprintDot '+g.cls;}
+  sprintRound++;sprintInput.value='';sprintInputRow.classList.add('hidden');
+  if(sprintRound<SPRINT_ROUNDS)T(()=>nextSprintRound(),400);else endSprint();
+}
+function endSprint(){
+  phase='result';const avgAcc=sprintResults.reduce((s,r)=>s+r.acc,0)/sprintResults.length;
+  const g=grade(avgAcc);
+  sprintSummary.classList.remove('hidden');
+  sprintSummary.innerHTML=sprintResults.map(r=>{
+    const rg=grade(r.acc),sign=r.guess>r.actual?'+':'';
+    const col=rg.cls==='win'?'var(--success)':rg.cls==='warn'?'var(--warn)':'var(--danger)';
+    return '<div class="sprintRow"><span class="rl">R'+r.round+'</span><span style="color:var(--fg-mid)">'+fmt(r.guess)+'s vs '+fmt(r.actual)+'s</span><span class="ra" style="color:'+col+'">'+Math.round(r.acc*100)+'%</span></div>';
+  }).join('');
+  showResult(g.label,g.cls,'Sprint avg: '+Math.round(avgAcc*100)+'% \u00B7 '+sprintResults.filter(r=>r.acc>=.75).length+'/'+SPRINT_ROUNDS+' passed',avgAcc);
+  if(avgAcc>=.75)sndWin(avgAcc);else sndLose();record(avgAcc);
+}
+
+/* Round control */
+function beginRound(){
+  resetViews();countdown(()=>{
+    if(mode==='estimate')beginEstimate();
+    else if(mode==='hold')beginHold();
+    else if(mode==='mirror')beginMirror();
+    else if(mode==='blind')beginBlind();
+    else if(mode==='rhythm')beginRhythm();
+    else if(mode==='sprint')beginSprint();
+  });
+}
+
+/* Events */
+document.querySelectorAll('.modeItem').forEach(li=>{
+  li.addEventListener('click',()=>{if(li.dataset.mode)startMode(li.dataset.mode);});
+  li.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();li.click();}});
+});
+document.querySelectorAll('.diffBtn').forEach(btn=>{
+  btn.addEventListener('click',()=>{document.querySelectorAll('.diffBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');difficulty=btn.dataset.diff;});
+});
+backHomeBtn.addEventListener('click',goHome);
+playAgainBtn.addEventListener('click',()=>{if(mode)beginRound();});
+estimateSubmit.addEventListener('click',submitEstimate);
+estimateInput.addEventListener('keydown',e=>{if(e.key==='Enter')submitEstimate();});
+holdBtn.addEventListener('mousedown',e=>{e.preventDefault();doHoldPress();});
+holdBtn.addEventListener('touchstart',e=>{e.preventDefault();doHoldPress();},{passive:false});
+mirrorBtn.addEventListener('mousedown',e=>{e.preventDefault();doMirrorPress();});
+mirrorBtn.addEventListener('touchstart',e=>{e.preventDefault();doMirrorPress();},{passive:false});
+blindBtn.addEventListener('mousedown',e=>{e.preventDefault();doBlindPress();});
+blindBtn.addEventListener('touchstart',e=>{e.preventDefault();doBlindPress();},{passive:false});
+rhythmBtn.addEventListener('mousedown',e=>{e.preventDefault();doRhythmTap();});
+rhythmBtn.addEventListener('touchstart',e=>{e.preventDefault();doRhythmTap();},{passive:false});
+sprintSubmit.addEventListener('click',submitSprint);
+sprintInput.addEventListener('keydown',e=>{if(e.key==='Enter')submitSprint();});
+window.addEventListener('mouseup',()=>{
+  if(isHolding&&mode==='hold')doHoldRelease();
+  if(isHolding&&mode==='mirror')doMirrorRelease();
+  if(isHolding&&mode==='blind')doBlindRelease();
+});
+window.addEventListener('touchend',()=>{
+  if(isHolding&&mode==='hold')doHoldRelease();
+  if(isHolding&&mode==='mirror')doMirrorRelease();
+  if(isHolding&&mode==='blind')doBlindRelease();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key===' '){
+    if(phase==='holding'&&mode==='hold'&&!isHolding){e.preventDefault();doHoldPress();}
+    if(phase==='holding'&&mode==='mirror'&&!isHolding){e.preventDefault();doMirrorPress();}
+    if(phase==='holding'&&mode==='blind'&&!isHolding){e.preventDefault();doBlindPress();}
+    if(phase==='holding'&&mode==='rhythm'){e.preventDefault();doRhythmTap();}
+  }
+  if((e.key==='r'||e.key==='R')&&phase==='result')beginRound();
+  if(e.key==='Enter'){
+    if(phase==='input'&&mode==='estimate')submitEstimate();
+    if(phase==='input'&&mode==='sprint')submitSprint();
+  }
+});
+document.addEventListener('keyup',e=>{
+  if(e.key===' '&&isHolding){
+    if(mode==='hold')doHoldRelease();
+    if(mode==='mirror')doMirrorRelease();
+    if(mode==='blind')doBlindRelease();
+  }
+});
+
+})();
+</script>
+</body>
+</html>
