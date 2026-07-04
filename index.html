@@ -619,8 +619,8 @@ function resetViews(){
   phaseLabel.textContent='';
   estimateInputRow.classList.add('hidden');estimateInput.value='';estimateKbd&&estimateKbd.classList.remove('hidden');
   [estimateRing,holdRing,blindRing,rhythmRing,sprintRing].forEach(r=>setRing(r,0));
-  estimateRing.className='ringFill c-accent';holdRing.className='ringFill c-alt';
-  blindRing.className='ringFill c-orange';rhythmRing.className='ringFill c-success';
+  estimateRing.setAttribute('class','ringFill c-accent');holdRing.setAttribute('class','ringFill c-alt');
+  blindRing.setAttribute('class','ringFill c-orange');rhythmRing.setAttribute('class','ringFill c-success');
   [holdBtn,mirrorBtn,blindBtn,rhythmBtn].forEach(b=>{b.classList.remove('active','success','danger-state');b.classList.add('hidden');b.disabled=true;});
   mirrorOriginal.textContent='--';mirrorYours.textContent='--';
   estimateDot.textContent='\u25CF';estimateDot.className='ringBigNum c-accent huge';
